@@ -16,7 +16,8 @@ namespace Unluau
 		String,
 		Import,
 		Table,
-		Closure
+		Closure,
+		Vector
 	}
 
 	public abstract class Constant
@@ -71,11 +72,11 @@ namespace Unluau
 			: base(ConstantType.Number, value)
 		{ }
 
-        public override string ToString()
-        {
+		public override string ToString()
+		{
 			return Value.ToString();
-        }
-    }
+		}
+	}
 
 	public class StringConstant : Constant<string>
 	{
@@ -83,10 +84,10 @@ namespace Unluau
 			: base(ConstantType.String, value)
 		{ }
 
-        public override string ToString()
-        {
-            return $"\"{Value}\"";
-        }
+		public override string ToString()
+		{
+			return $"\"{Value}\"";
+		}
 	}
 
 	public class ImportConstant : Constant<IList<StringConstant>>
@@ -95,10 +96,10 @@ namespace Unluau
 			: base(ConstantType.Import, names)
 		{ }
 
-        public override string ToString()
-        {
-            return $"[{string.Join(",", Value)}]";
-        }
+		public override string ToString()
+		{
+			return $"[{string.Join(",", Value)}]";
+		}
 	}
 
 	public class TableConstant : Constant<IList<Constant>>
@@ -107,10 +108,10 @@ namespace Unluau
 			: base(ConstantType.Table, keys)
 		{ }
 
-        public override string ToString()
-        {
-            return $"{{{string.Join(", ", Value)}}}";
-        }
+		public override string ToString()
+		{
+			return $"{{{string.Join(", ", Value)}}}";
+		}
 	}
 
 	public class ClosureConstant : Constant<int>
@@ -118,5 +119,17 @@ namespace Unluau
 		public ClosureConstant(int index)
 			: base(ConstantType.Closure, index)
 		{ }
+	}
+
+	public class VectorConstant : Constant<IList<float>>
+	{
+		public VectorConstant(IList<float> vector)
+			: base(ConstantType.Vector, vector)
+		{ }
+		
+		public override string ToString()
+		{
+			return $"{{{string.Join(", ", Value)}}}";
+		}
 	}
 }

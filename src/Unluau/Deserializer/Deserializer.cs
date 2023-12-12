@@ -17,7 +17,7 @@ namespace Unluau
         private byte version, typesVersion;
         private OpCodeEncoding encoding;
 
-        private const byte MinVesion = 3, MaxVersion = 4;
+        private const byte MinVesion = 3, MaxVersion = 5;
         private const byte TypeVersion = 1;
 
         public Deserializer(LogManager manager, Stream stream, OpCodeEncoding encoding)
@@ -220,7 +220,6 @@ namespace Unluau
                     return new ImportConstant(names);
                 case ConstantType.Table:
                     int size = reader.ReadInt32Compressed();
-
                     IList<Constant> keys = new List<Constant>(size);
 
                     while (keys.Count < size)
@@ -229,6 +228,20 @@ namespace Unluau
                     return new TableConstant(keys);
                 case ConstantType.Closure:
                     return new ClosureConstant(reader.ReadInt32Compressed());
+                case ConstantType.Vector:
+                    float x = reader.ReadSingle(),
+                          y = reader.ReadSingle(),
+                          z = reader.ReadSingle(),
+                          w = reader.ReadSingle();
+					
+                    IList<float> vector;
+
+                    if (w == 0.0)
+                        vector = new List<float>(3) { x, y, z };
+                    else
+                        vector = new List<float>(4) { x, y, z, w };
+					
+                    return new VectorConstant(vector);
             }
 
             // Should never happen

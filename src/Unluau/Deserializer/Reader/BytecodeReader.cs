@@ -62,7 +62,7 @@ namespace Unluau
         }
 
         /// <summary>
-        /// Reads a 3 byte integer.
+        /// Reads a 4 byte integer.
         /// </summary>
         public int ReadInt32()
         {
@@ -70,7 +70,7 @@ namespace Unluau
         }
 
         /// <summary>
-        /// Reads a 3 byte unsigned integer.
+        /// Reads a 4 byte unsigned integer.
         /// </summary>
         public uint ReadUInt32()
         {
@@ -140,9 +140,17 @@ namespace Unluau
         {
             return Reader.ReadUInt16();
         }
-
+		
         /// <summary>
-        /// Reads a 64 bit integer.
+        /// Reads a 32 bit float.
+        /// </summary>
+        public float ReadSingle()
+        {
+            return Reader.ReadSingle();
+        }
+		
+        /// <summary>
+        /// Reads a 64 bit float.
         /// </summary>
         public double ReadDouble()
         {
