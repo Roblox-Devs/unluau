@@ -1,4 +1,4 @@
-﻿// Copyright (c) Valence. All Rights Reserved.
+// Copyright (c) Valence. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0
 
 using System;
@@ -12,7 +12,8 @@ namespace Unluau
     public enum Stage
     {
         Deserializer,
-        Lifter
+        Lifter,
+        IfElse
     }
 
     public class DecompilerException : Exception

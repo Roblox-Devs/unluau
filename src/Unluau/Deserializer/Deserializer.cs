@@ -1,4 +1,4 @@
-﻿// Copyright (c) Valence. All Rights Reserved.
+// Copyright (c) Valence. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0
 
 using System;
@@ -40,7 +40,7 @@ namespace Unluau
             
             // Make sure we have a valid bytecode version (so in range)
             if (version < MinVesion || version > MaxVersion)
-                logger.Error($"Bytecode version mismatch, expected version {MinVesion}...{MaxVersion}");
+                logger.Error($"Bytecode version mismatch, expected version {MinVesion}...{MaxVersion}, got {version}");
 
             if (version >= 4)
                 typesVersion = reader.ReadByte();

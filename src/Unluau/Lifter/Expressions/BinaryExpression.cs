@@ -1,4 +1,4 @@
-﻿// Copyright (c) Valence. All Rights Reserved.
+// Copyright (c) Valence. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0
 
 using System.Linq.Expressions;
@@ -7,7 +7,7 @@ namespace Unluau
 {
     public class BinaryExpression : Expression
     {
-        public enum BinaryOperation 
+        public enum BinaryOperation
         {
             Add,
             Subtract,
@@ -28,6 +28,7 @@ namespace Unluau
 
         public BinaryOperation Operation { get; set; }
         public Expression Left { get; set; }
+
         public Expression Right { get; set; }
 
         public BinaryExpression(Expression left, BinaryOperation operation, Expression right)
@@ -39,6 +40,10 @@ namespace Unluau
 
         public override void Write(Output output)
         {
+            if (Left == null || Right == null)
+            {
+                throw new DecompilerException(Stage.IfElse, "Unknown LR types");
+            }
             Left.Write(output);
             output.Write($" {BinaryOperationChar(Operation)} ");
             Right.Write(output);

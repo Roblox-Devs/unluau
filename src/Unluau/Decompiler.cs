@@ -1,4 +1,4 @@
-﻿// Copyright (c) Valence. All Rights Reserved.
+// Copyright (c) Valence. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0
 
 using System;
@@ -6,9 +6,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Runtime.InteropServices;
 
 namespace Unluau
 {
+    [ComVisible(true)]
+
     public class DecompilerOptions
     {
         public bool PerferStringInterpolation { get; set; } = true;

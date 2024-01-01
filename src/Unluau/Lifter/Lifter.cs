@@ -1,4 +1,4 @@
-﻿// Copyright (c) Valence. All Rights Reserved.
+// Copyright (c) Valence. All Rights Reserved.
 // Licensed under the Apache License, Version 2.0
 
 using System;
@@ -23,7 +23,7 @@ namespace Unluau
         }
 
         public Lifter(Chunk chunk, DecompilerOptions options)
-        { 
+        {
             this.chunk = chunk;
             this.options = options;
         }
@@ -58,168 +58,168 @@ namespace Unluau
                 {
                     case OpCode.LOADKX:
                     case OpCode.LOADK:
-                    {
-                        Constant target = properties.Code == OpCode.LOADK 
-                            ? function.Constants[instruction.D] : function.GetConstant(++pc);
-
-                        registers.LoadRegister(instruction.A, ConstantToExpression(target), block);
-                        break;
-                    }
-                    case OpCode.LOADN:
-                    {
-                        registers.LoadRegister(instruction.A, new NumberLiteral(instruction.D), block);
-                        break;
-                    }
-                    case OpCode.GETGLOBAL:
-                    {
-                        Constant target = function.GetConstant(++pc);
-
-                        registers.LoadRegister(instruction.A, GetConstantAsGlobal(target), block);
-                        break;
-                    }
-                    case OpCode.SETGLOBAL:
-                    {
-                        Constant target = function.GetConstant(++pc);
-
-                        block.AddStatement(new Assignment(GetConstantAsGlobal(target), registers.GetExpression(instruction.A)));
-                        break;
-                    }
-                    case OpCode.GETIMPORT:
-                    {
-                        ImportConstant target = (ImportConstant)function.Constants[instruction.D];
-
-                        if (target.Value.Count > 1)
                         {
-                            Expression expression = new NameIndex(new Global(target.Value[0].Value), target.Value[1].Value);
+                            Constant target = properties.Code == OpCode.LOADK
+                                ? function.Constants[instruction.D] : function.GetConstant(++pc);
 
-                            if (target.Value.Count > 2)
-                                expression = new NameIndex(expression, target.Value[2].Value);
+                            registers.LoadRegister(instruction.A, ConstantToExpression(target), block);
+                            break;
+                        }
+                    case OpCode.LOADN:
+                        {
+                            registers.LoadRegister(instruction.A, new NumberLiteral(instruction.D), block);
+                            break;
+                        }
+                    case OpCode.GETGLOBAL:
+                        {
+                            Constant target = function.GetConstant(++pc);
 
-                            registers.LoadRegister(instruction.A, expression, block);
-                        } 
-                        else
                             registers.LoadRegister(instruction.A, GetConstantAsGlobal(target), block);
-                        
-                        // Skip next instruction (we used the constant instead of AUX)
-                        pc++;
-                        break;
-                    }
+                            break;
+                        }
+                    case OpCode.SETGLOBAL:
+                        {
+                            Constant target = function.GetConstant(++pc);
+
+                            block.AddStatement(new Assignment(GetConstantAsGlobal(target), registers.GetExpression(instruction.A)));
+                            break;
+                        }
+                    case OpCode.GETIMPORT:
+                        {
+                            ImportConstant target = (ImportConstant)function.Constants[instruction.D];
+
+                            if (target.Value.Count > 1)
+                            {
+                                Expression expression = new NameIndex(new Global(target.Value[0].Value), target.Value[1].Value);
+
+                                if (target.Value.Count > 2)
+                                    expression = new NameIndex(expression, target.Value[2].Value);
+
+                                registers.LoadRegister(instruction.A, expression, block);
+                            }
+                            else
+                                registers.LoadRegister(instruction.A, GetConstantAsGlobal(target), block);
+
+                            // Skip next instruction (we used the constant instead of AUX)
+                            pc++;
+                            break;
+                        }
                     case OpCode.NAMECALL:
                     case OpCode.GETTABLEKS:
-                    {   
-                        Constant target = function.GetConstant(++pc);
-                        string targetValue = (target as StringConstant)!.Value;
-
-                        bool isNamecall = properties.Code == OpCode.NAMECALL;
-                        Expression nameExpression = registers.GetExpression(instruction.B);
-
-                        Expression expression = new NameIndex(nameExpression, targetValue, isNamecall);
-
-                        // This is a namecall and the function name is format we need to account for string interpolation
-                        if (isNamecall && targetValue == "format")
                         {
-                            // Extract the name index from the expression
-                            NameIndex? nameIndex = expression as NameIndex;
+                            Constant target = function.GetConstant(++pc);
+                            string targetValue = (target as StringConstant)!.Value;
 
-                            if (options.PerferStringInterpolation)
+                            bool isNamecall = properties.Code == OpCode.NAMECALL;
+                            Expression nameExpression = registers.GetExpression(instruction.B);
+
+                            Expression expression = new NameIndex(nameExpression, targetValue, isNamecall);
+
+                            // This is a namecall and the function name is format we need to account for string interpolation
+                            if (isNamecall && targetValue == "format")
                             {
-                                // If we perfer string interpolation set the expression as an interpolated string
-                                string format = (((LocalExpression)nameIndex!.Expression).Expression as StringLiteral)!.Value;
-                                expression = new InterpolatedStringLiteral(format, new List<Expression>());
-                            } 
+                                // Extract the name index from the expression
+                                NameIndex? nameIndex = expression as NameIndex;
+
+                                if (options.PerferStringInterpolation)
+                                {
+                                    // If we perfer string interpolation set the expression as an interpolated string
+                                    string format = (((LocalExpression)nameIndex!.Expression).Expression as StringLiteral)!.Value;
+                                    expression = new InterpolatedStringLiteral(format, new List<Expression>());
+                                }
+                                else
+                                {
+                                    // Otherwise add an expression group around the string literal
+                                    nameIndex!.Expression = new ExpressionGroup(nameIndex!.Expression);
+                                    expression = nameIndex;
+                                }
+                            }
+
+                            registers.LoadRegister(instruction.A, expression, block);
+                            break;
+                        }
+                    case OpCode.GETTABLEN:
+                        {
+                            ExpressionIndex index = new ExpressionIndex(registers.GetExpression(instruction.B), new NumberLiteral(instruction.C + 1));
+
+                            registers.LoadRegister(instruction.A, index, block);
+                            break;
+                        }
+                    case OpCode.GETTABLE:
+                        {
+                            ExpressionIndex expressionIndex = new ExpressionIndex(registers.GetExpression(instruction.B), registers.GetExpression(instruction.C));
+
+                            registers.LoadRegister(instruction.A, expressionIndex, block);
+                            break;
+                        }
+                    case OpCode.CALL:
+                        {
+                            IList<Expression> arguments = new List<Expression>();
+
+                            Expression callFunction = registers.GetExpression(instruction.A);
+
+                            int numArgs = instruction.B > 0 ? instruction.B : (registers.Top - instruction.A) + 1;
+
+                            for (int slot = 1 + IsSelf(callFunction); slot < numArgs; ++slot)
+                            {
+                                int register = instruction.A + slot;
+                                Expression expression = registers.GetExpression(register);
+
+                                if (expression != null)
+                                {
+                                    arguments.Add(expression);
+
+                                    registers.FreeRegister(register, block);
+                                }
+
+                            }
+
+                            // Free the function register
+                            registers.FreeRegister(instruction.A, block);
+
+                            Expression call = new FunctionCall(callFunction, arguments);
+
+                            // Note: we do this for string interpolation to work
+                            var callFunctionValue = ((LocalExpression)callFunction).Expression;
+                            if (callFunctionValue is InterpolatedStringLiteral)
+                            {
+                                InterpolatedStringLiteral literal = (InterpolatedStringLiteral)callFunctionValue;
+
+                                literal.Arguments = arguments;
+                                call = literal;
+                            }
+
+                            if (instruction.C - 1 == 0)
+                                block.AddStatement(call);
+                            else
+                                registers.LoadRegister(instruction.A, call, block);
+                            break;
+                        }
+                    case OpCode.MOVE:
+                        {
+                            var fromExpression = registers.GetExpression(instruction.B);
+                            var toExpression = registers.GetExpression(instruction.A);
+
+                            // If our target register is empty, then load into that register
+                            if (toExpression is null)
+                                registers.LoadRegister(instruction.A, fromExpression, block);
                             else
                             {
-                                // Otherwise add an expression group around the string literal
-                                nameIndex!.Expression = new ExpressionGroup(nameIndex!.Expression);
-                                expression = nameIndex;
+                                // Now create the reassignment
+                                block.AddStatement(new Assignment(toExpression, fromExpression));
                             }
+                            break;
                         }
-
-                        registers.LoadRegister(instruction.A, expression, block);
-                        break;
-                    }
-                    case OpCode.GETTABLEN:
-                    {
-                        ExpressionIndex index = new ExpressionIndex(registers.GetExpression(instruction.B), new NumberLiteral(instruction.C + 1));
-
-                        registers.LoadRegister(instruction.A, index, block);
-                        break;
-                    }
-                    case OpCode.GETTABLE:
-                    {
-                        ExpressionIndex expressionIndex = new ExpressionIndex(registers.GetExpression(instruction.B), registers.GetExpression(instruction.C));
-
-                        registers.LoadRegister(instruction.A, expressionIndex, block);
-                        break;
-                    }
-                    case OpCode.CALL:
-                    {
-                        IList<Expression> arguments = new List<Expression>();
-
-                        Expression callFunction = registers.GetExpression(instruction.A);
-
-                        int numArgs = instruction.B > 0 ? instruction.B : (registers.Top - instruction.A) + 1;
-
-                        for (int slot = 1 + IsSelf(callFunction); slot < numArgs; ++slot)
-                        {
-                            int register = instruction.A + slot;
-                            Expression expression = registers.GetExpression(register);
-
-                            if (expression != null)
-                            {
-                                arguments.Add(expression);
-
-                                registers.FreeRegister(register, block);
-                            }
-                            
-                        }
-
-                        // Free the function register
-                        registers.FreeRegister(instruction.A, block);
-
-                        Expression call = new FunctionCall(callFunction, arguments);
-
-                        // Note: we do this for string interpolation to work
-                        var callFunctionValue = ((LocalExpression)callFunction).Expression;
-                        if (callFunctionValue is InterpolatedStringLiteral)
-                        {
-                            InterpolatedStringLiteral literal = (InterpolatedStringLiteral)callFunctionValue;
-
-                            literal.Arguments = arguments;
-                            call = literal;
-                        }
-
-                        if (instruction.C - 1 == 0)
-                            block.AddStatement(call);
-                        else
-                            registers.LoadRegister(instruction.A, call, block);
-                        break;
-                    }
-                    case OpCode.MOVE:
-                    {
-                        var fromExpression = registers.GetExpression(instruction.B);
-                        var toExpression = registers.GetExpression(instruction.A);
-
-                        // If our target register is empty, then load into that register
-                        if (toExpression is null)
-                            registers.LoadRegister(instruction.A, fromExpression, block);
-                        else
-                        {
-                            // Now create the reassignment
-                            block.AddStatement(new Assignment(toExpression, fromExpression));
-                        }
-                        break;
-                    }
                     case OpCode.LOADNIL:
-                    {
-                        registers.LoadRegister(instruction.A, new NilLiteral(), block);
-                        break;
-                    }
+                        {
+                            registers.LoadRegister(instruction.A, new NilLiteral(), block);
+                            break;
+                        }
                     case OpCode.LOADB:
-                    {
-                        registers.LoadRegister(instruction.A, new BooleanLiteral(instruction.B == 1), block);
-                        break;
-                    }
+                        {
+                            registers.LoadRegister(instruction.A, new BooleanLiteral(instruction.B == 1), block);
+                            break;
+                        }
 
                     // Uses register for right hand expression
                     case OpCode.ADD:
@@ -235,160 +235,160 @@ namespace Unluau
                     case OpCode.DIVK:
                     case OpCode.MODK:
                     case OpCode.POWK:
-                    {
-                        Expression right =  (properties.Code >= OpCode.ADDK) ? ConstantToExpression(function.Constants[instruction.C]) 
-                            : registers.GetExpression(instruction.C);
-                        Expression left = registers.GetExpression(instruction.B);
+                        {
+                            Expression right = (properties.Code >= OpCode.ADDK) ? ConstantToExpression(function.Constants[instruction.C])
+                                : registers.GetExpression(instruction.C);
+                            Expression left = registers.GetExpression(instruction.B);
 
-                        // Get the equivalent binary operation for the opcode
-                        BinaryExpression.BinaryOperation operation = BinaryExpression.GetBinaryOperation(properties.Code);
+                            // Get the equivalent binary operation for the opcode
+                            BinaryExpression.BinaryOperation operation = BinaryExpression.GetBinaryOperation(properties.Code);
 
-                        // Get the prescedence of the left and right hand expressions and the current operation
-                        int leftPresedence = BinaryExpression.GetBinaryOperationPrescedence(left), rightPrescedence = BinaryExpression.GetBinaryOperationPrescedence(right);
-                        int currentPrescedence = BinaryExpression.GetBinaryOperationPrescedence(operation);
-                        
-                        // If the left hand expression has a lower prescedence than the current operation, we need to wrap it in an expression group
-                        if (leftPresedence < currentPrescedence && leftPresedence > 0)
-                            left = new ExpressionGroup(left);
+                            // Get the prescedence of the left and right hand expressions and the current operation
+                            int leftPresedence = BinaryExpression.GetBinaryOperationPrescedence(left), rightPrescedence = BinaryExpression.GetBinaryOperationPrescedence(right);
+                            int currentPrescedence = BinaryExpression.GetBinaryOperationPrescedence(operation);
 
-                        // If the right hand expression has a lower prescedence than the current operation, we need to wrap it in an expression group
-                        if (rightPrescedence < currentPrescedence && rightPrescedence > 0)
-                            right = new ExpressionGroup(right);
+                            // If the left hand expression has a lower prescedence than the current operation, we need to wrap it in an expression group
+                            if (leftPresedence < currentPrescedence && leftPresedence > 0)
+                                left = new ExpressionGroup(left);
 
-                        BinaryExpression binary = new BinaryExpression(left, operation, right);
+                            // If the right hand expression has a lower prescedence than the current operation, we need to wrap it in an expression group
+                            if (rightPrescedence < currentPrescedence && rightPrescedence > 0)
+                                right = new ExpressionGroup(right);
 
-                        registers.LoadRegister(instruction.A, binary, block);
-                        break;
-                    }
+                            BinaryExpression binary = new BinaryExpression(left, operation, right);
+
+                            registers.LoadRegister(instruction.A, binary, block);
+                            break;
+                        }
                     case OpCode.CONCAT:
-                    {
-                        // Kinda annoying, gotta unravel the whole TING
-                        Expression expression = BuildConcat(registers, instruction.B, instruction.C);
+                        {
+                            // Kinda annoying, gotta unravel the whole TING
+                            Expression expression = BuildConcat(registers, instruction.B, instruction.C);
 
-                        registers.LoadRegister(instruction.A, expression, block);
-                        break;
-                    }
+                            registers.LoadRegister(instruction.A, expression, block);
+                            break;
+                        }
                     case OpCode.NOT:
                     case OpCode.LENGTH:
                     case OpCode.MINUS:
-                    {
-                        registers.LoadRegister(instruction.A, registers.GetExpression(instruction.B), block);
-                        break;
-                    }
+                        {
+                            registers.LoadRegister(instruction.A, registers.GetExpression(instruction.B), block);
+                            break;
+                        }
                     case OpCode.SETTABLEKS:
-                    {
-                        StringConstant target = (StringConstant)function.GetConstant(++pc);
-                        Expression table = registers.GetExpression(instruction.B), tableValue = ((LocalExpression)table).Expression;
-
-                        if (options.InlineTableDefintions && tableValue is TableLiteral)
                         {
-                            if (((LocalExpression)table).Decleration.Referenced == 1)
-                                tableValue = registers.GetRefExpressionValue(instruction.B);
+                            StringConstant target = (StringConstant)function.GetConstant(++pc);
+                            Expression table = registers.GetExpression(instruction.B), tableValue = ((LocalExpression)table).Expression;
 
-                            TableLiteral tableLiteral = (TableLiteral)tableValue;
-
-                            if (tableLiteral.MaxEntries > tableLiteral.Entries.Count)
+                            if (options.InlineTableDefintions && tableValue is TableLiteral)
                             {
-                                tableLiteral.AddEntry(new TableLiteral.Entry(GetConstantAsGlobal(target), registers.GetExpression(instruction.A)));
-                                break;
+                                if (((LocalExpression)table).Decleration.Referenced == 1)
+                                    tableValue = registers.GetRefExpressionValue(instruction.B);
+
+                                TableLiteral tableLiteral = (TableLiteral)tableValue;
+
+                                if (tableLiteral.MaxEntries > tableLiteral.Entries.Count)
+                                {
+                                    tableLiteral.AddEntry(new TableLiteral.Entry(GetConstantAsGlobal(target), registers.GetExpression(instruction.A)));
+                                    break;
+                                }
                             }
+
+                            NameIndex nameIndex = new NameIndex(table, target.Value);
+
+                            block.AddStatement(new Assignment(nameIndex, registers.GetExpression(instruction.A)));
+                            break;
                         }
-
-                        NameIndex nameIndex = new NameIndex(table, target.Value);
-
-                        block.AddStatement(new Assignment(nameIndex, registers.GetExpression(instruction.A)));
-                        break;
-                    }
                     case OpCode.SETTABLE:
-                    {
-                        Expression expression = registers.GetRefExpressionValue(instruction.C), value = registers.GetExpression(instruction.A);
-                        Expression table = registers.GetExpression(instruction.B, false), tableValue = ((LocalExpression)table).Expression;           
-
-                        if (options.InlineTableDefintions && tableValue is TableLiteral)
                         {
-                            TableLiteral tableLiteral = (TableLiteral)tableValue;
+                            Expression expression = registers.GetRefExpressionValue(instruction.C), value = registers.GetExpression(instruction.A);
+                            Expression table = registers.GetExpression(instruction.B, false), tableValue = ((LocalExpression)table).Expression;
 
-                            if (tableLiteral.MaxEntries > tableLiteral.Entries.Count)
+                            if (options.InlineTableDefintions && tableValue is TableLiteral)
                             {
-                                tableLiteral.AddEntry(new TableLiteral.Entry(expression, value));
-                                break;
+                                TableLiteral tableLiteral = (TableLiteral)tableValue;
+
+                                if (tableLiteral.MaxEntries > tableLiteral.Entries.Count)
+                                {
+                                    tableLiteral.AddEntry(new TableLiteral.Entry(expression, value));
+                                    break;
+                                }
                             }
+
+                            if (expression is NumberLiteral || expression is StringLiteral)
+                                expression = new ExpressionIndex(table, expression);
+
+                            block.AddStatement(new Assignment(expression, value));
+                            break;
                         }
-
-                        if (expression is NumberLiteral || expression is StringLiteral)
-                            expression = new ExpressionIndex(table, expression);
-
-                        block.AddStatement(new Assignment(expression, value));
-                        break;
-                    }
                     case OpCode.NEWTABLE:
-                    {
-                        // Todo: rewrite this stuff so it all works with 64 bit integers
-                        int arraySize = Convert.ToInt32(function.Instructions[++pc].Value);
-                        int hashSize = instruction.B == 0 ? 0 : (1 << (instruction.B - 1));
-
-                        TableLiteral expression;
-
-                        if (arraySize > 0)
-                            expression = new TableLiteral(arraySize, true);
-                        else
-                            expression = new TableLiteral(hashSize, false);
-
-                        if (options.InlineTableDefintions && hashSize > 0)
-                            expression.MaxEntries = hashSize;
-
-                        registers.LoadRegister(instruction.A, expression, block);
-                        break;
-                    }
-                    case OpCode.SETLIST:
-                    {
-                        TableLiteral tableLiteral = (TableLiteral)registers.GetExpressionValue(instruction.A);
-
-                        for (int slot = instruction.B; slot <= instruction.C; slot++)
-                            tableLiteral.AddEntry(new TableLiteral.Entry(null, registers.GetRefExpressionValue(slot)));
-
-                        // Skip next instruction because we didn't use AUX
-                        pc++;
-                        break;
-                    }
-                    case OpCode.DUPTABLE:
-                    {
-                        TableConstant target = (TableConstant)function.Constants[instruction.D];
-
-                        TableLiteral tableLiteral = new TableLiteral(target.Value.Count, false);
-
-                        if (options.InlineTableDefintions)    
-                            tableLiteral.MaxEntries = target.Value.Count;
-                        
-
-                        registers.LoadRegister(instruction.A, tableLiteral, block);
-                        break;
-                    }
-                    case OpCode.GETVARARGS:
-                    { 
-                        int count = instruction.B - 1;
-
-                        if (count > 0)
                         {
-                            ExpressionList expressions = new ExpressionList(count);
+                            // Todo: rewrite this stuff so it all works with 64 bit integers
+                            int arraySize = Convert.ToInt32(function.Instructions[++pc].Value);
+                            int hashSize = instruction.B == 0 ? 0 : (1 << (instruction.B - 1));
 
-                            for (int i = 0; i < count; ++i)
-                            {
-                                int register = instruction.A + i;
+                            TableLiteral expression;
 
-                                expressions.Append(registers.LoadTempRegister(register, new Vararg(), block, Decleration.DeclerationType.Local));
+                            if (arraySize > 0)
+                                expression = new TableLiteral(arraySize, true);
+                            else
+                                expression = new TableLiteral(hashSize, false);
 
-                                // All of the variables need to be referenced more than once so that we don't end up 
-                                // printing '...' for each of their references.
-                                registers.GetDeclerationDict()[register].Referenced = 2;
-                            }
+                            if (options.InlineTableDefintions && hashSize > 0)
+                                expression.MaxEntries = hashSize;
 
-                            block.AddStatement(new LocalAssignment(expressions, new Vararg()));
+                            registers.LoadRegister(instruction.A, expression, block);
+                            break;
                         }
-                        else
-                            registers.LoadRegister(instruction.A, new Vararg(), block);
-                        break;
-                    }
+                    case OpCode.SETLIST:
+                        {
+                            TableLiteral tableLiteral = (TableLiteral)registers.GetExpressionValue(instruction.A);
+
+                            for (int slot = instruction.B; slot <= instruction.C; slot++)
+                                tableLiteral.AddEntry(new TableLiteral.Entry(null, registers.GetRefExpressionValue(slot)));
+
+                            // Skip next instruction because we didn't use AUX
+                            pc++;
+                            break;
+                        }
+                    case OpCode.DUPTABLE:
+                        {
+                            TableConstant target = (TableConstant)function.Constants[instruction.D];
+
+                            TableLiteral tableLiteral = new TableLiteral(target.Value.Count, false);
+
+                            if (options.InlineTableDefintions)
+                                tableLiteral.MaxEntries = target.Value.Count;
+
+
+                            registers.LoadRegister(instruction.A, tableLiteral, block);
+                            break;
+                        }
+                    case OpCode.GETVARARGS:
+                        {
+                            int count = instruction.B - 1;
+
+                            if (count > 0)
+                            {
+                                ExpressionList expressions = new ExpressionList(count);
+
+                                for (int i = 0; i < count; ++i)
+                                {
+                                    int register = instruction.A + i;
+
+                                    expressions.Append(registers.LoadTempRegister(register, new Vararg(), block, Decleration.DeclerationType.Local));
+
+                                    // All of the variables need to be referenced more than once so that we don't end up 
+                                    // printing '...' for each of their references.
+                                    registers.GetDeclerationDict()[register].Referenced = 2;
+                                }
+
+                                block.AddStatement(new LocalAssignment(expressions, new Vararg()));
+                            }
+                            else
+                                registers.LoadRegister(instruction.A, new Vararg(), block);
+                            break;
+                        }
                     case OpCode.JUMPIF:
                     case OpCode.JUMPIFNOT:
                     case OpCode.JUMPIFEQ:
@@ -401,139 +401,142 @@ namespace Unluau
                     case OpCode.JUMPXEQKB:
                     case OpCode.JUMPXEQKN:
                     case OpCode.JUMPXEQKS:
-                    {
-                        bool auxUsed = false;
-                        Expression condition = GetCondition(registers, instruction, function.Instructions[pc + 1], function.Constants, ref auxUsed);
-
-                        Registers newRegisters = new Registers(registers);
-                        Statement statement = new IfElse(condition, LiftBlock(function, newRegisters, auxUsed ? pc + 2 : pc + 1, (pc += instruction.D) + 1));
-
-                        Instruction nextInstruction = function.Instructions[pc];
-                        switch (nextInstruction.GetProperties().Code)
                         {
-                            case OpCode.JUMP:
+                            bool auxUsed = false;
+                            Expression condition = GetCondition(registers, instruction, function.Instructions[pc + 1], function.Constants, ref auxUsed);
+
+                            Registers newRegisters = new Registers(registers);
+                            Statement statement = new IfElse(condition, LiftBlock(function, newRegisters, auxUsed ? pc + 2 : pc + 1, (pc += instruction.D) + 1));
+
+                            Instruction nextInstruction = function.Instructions[pc];
+                            switch (nextInstruction.GetProperties().Code)
                             {
-                                IfElse ifElse = statement as IfElse;
+                                case OpCode.JUMP:
+                                    {
+                                        IfElse ifElse = statement as IfElse;
 
-                                ifElse.ElseBody = LiftBlock(function, registers, pc + 1, (pc += nextInstruction.D) + 1);
-                                Block elseBodyBlock = ifElse.ElseBody as Block; // We know it has to be a block
+                                        ifElse.ElseBody = LiftBlock(function, registers, pc + 1, (pc += nextInstruction.D) + 1);
+                                        Block elseBodyBlock = ifElse.ElseBody as Block; // We know it has to be a block
 
-                                // Little optimization to include elseifs
-                                if (elseBodyBlock.Statements.Count == 1 && elseBodyBlock.Statements[0] is IfElse)
-                                    ifElse.ElseBody = elseBodyBlock.Statements[0] as IfElse;
-                                break;
+                                        // Little optimization to include elseifs
+                                        if (elseBodyBlock.Statements.Count == 1 && elseBodyBlock.Statements[0] is IfElse)
+                                            ifElse.ElseBody = elseBodyBlock.Statements[0] as IfElse;
+                                        break;
+                                    }
+                                case OpCode.JUMPBACK:
+                                    {
+                                        IfElse ifElse = statement as IfElse;
+
+                                        statement = new WhileLoop(ifElse.Condition, ifElse.IfBody);
+                                        break;
+                                    }
                             }
-                            case OpCode.JUMPBACK:
+
+                            // Check if the current instruction is a simple jump instruction
+                            if ((properties.Code == OpCode.JUMPIF || properties.Code == OpCode.JUMPIFNOT) && statement is IfElse)
                             {
-                                IfElse ifElse = statement as IfElse;
+                                // These are the two instructions that are always used for `and` and `or` statements.
+                                // We need to check if the register that the unary operator references is the same as 
+                                // the one being reassigned in the body of the if statement.
+                                byte register = instruction.A;
+                                IfElse ifElse = (IfElse)statement;
 
-                                statement = new WhileLoop(ifElse.Condition, ifElse.IfBody);
-                                break;
-                            }
-                        }
-
-                        // Check if the current instruction is a simple jump instruction
-                        if ((properties.Code == OpCode.JUMPIF || properties.Code == OpCode.JUMPIFNOT) && statement is IfElse)
-                        {
-                            // These are the two instructions that are always used for `and` and `or` statements.
-                            // We need to check if the register that the unary operator references is the same as 
-                            // the one being reassigned in the body of the if statement.
-                            byte register = instruction.A;
-                            IfElse ifElse = (IfElse)statement;
-
-                            // If our condition is a unary expression and the body of the if statement is a local assignment
-                            // we can go on to check if the unary expression is referencing the same register as the local assignment.
-                            if (ifElse.IfBody.Statements.Count == 1
-                                && ifElse.IfBody.Statements.First() is LocalAssignment localAssignment)
-                            {
-                                LocalExpression? expression = localAssignment.Expression as LocalExpression;
-                                UnaryExpression? unaryCondition = ifElse.Condition as UnaryExpression;
-
-                                if (expression!.Decleration.Register == register)
+                                // If our condition is a unary expression and the body of the if statement is a local assignment
+                                // we can go on to check if the unary expression is referencing the same register as the local assignment.
+                                if (ifElse.IfBody.Statements.Count == 1
+                                    && ifElse.IfBody.Statements.First() is LocalAssignment localAssignment)
                                 {
-                                    // We know that the current jump instruction represents an `and` or `or` statement.
-                                    Expression left = unaryCondition is null ? ifElse.Condition : unaryCondition!.Expression; 
-                                    Expression right = expression!.Expression;
+                                    LocalExpression? expression = localAssignment.Expression as LocalExpression;
+                                    UnaryExpression? unaryCondition = ifElse.Condition as UnaryExpression;
 
-                                    var operation = unaryCondition is null ? BinaryExpression.BinaryOperation.And : BinaryExpression.BinaryOperation.Or;
+                                    if (expression!.Decleration.Register == register)
+                                    {
+                                        // We know that the current jump instruction represents an `and` or `or` statement.
+                                        Expression left = unaryCondition is null ? ifElse.Condition : unaryCondition!.Expression;
+                                        Expression right = expression!.Expression;
 
-                                    registers.LoadRegister(register, new BinaryExpression(left, operation, right), block);
-                                    break;
+                                        var operation = unaryCondition is null ? BinaryExpression.BinaryOperation.And : BinaryExpression.BinaryOperation.Or;
+
+                                        registers.LoadRegister(register, new BinaryExpression(left, operation, right), block);
+                                        break;
+                                    }
                                 }
                             }
-                        }
 
-                        block.AddStatement(statement);
-                        break;
-                    }
+                            block.AddStatement(statement);
+                            break;
+                        }
                     case OpCode.NEWCLOSURE:
                     case OpCode.DUPCLOSURE:
-                    {
-                        int functionId = properties.Code == OpCode.DUPCLOSURE ? ((ClosureConstant)function.Constants[instruction.D]).Value : instruction.D;
-
-                        Function newFunction = function.GetFunction(functionId);
-                        Registers newRegisters = CreateRegisters(newFunction);
-
-                        while (newFunction.Upvalues.Count < newFunction.MaxUpvalues)
                         {
-                            Instruction capture = function.Instructions[++pc];
+                            int functionId = properties.Code == OpCode.DUPCLOSURE ? ((ClosureConstant)function.Constants[instruction.D]).Value : instruction.D;
 
-                            if (capture.GetProperties().Code != OpCode.CAPTURE)
-                                throw new DecompilerException(Stage.Lifter, "Expected capture instruction following NEWCLOSURE/DUPCLOSURE");
+                            Function newFunction = function.GetFunction(functionId);
+                            Registers newRegisters = CreateRegisters(newFunction);
 
-                            LocalExpression? expression;
-
-                            switch ((CaptureType)capture.A)
+                            while (newFunction.Upvalues.Count < newFunction.MaxUpvalues)
                             {
-                                case CaptureType.Value:
-                                    var type = options.RenameUpvalues ? Decleration.DeclerationType.Upvalue : Decleration.DeclerationType.Local;
+                                Instruction capture = function.Instructions[++pc];
 
-                                    expression = (LocalExpression)registers.GetExpression(capture.B);
-                                    expression.Decleration.Type = type;
-                                    break;
-                                case CaptureType.Upvalue:
-                                    // We've got an existing upvalue
-                                    expression = function.Upvalues[capture.B];
-                                    break;
-                                default:
-                                    throw new DecompilerException(Stage.Lifter, $"Unknown capture type {capture.A}");
+                                if (capture.GetProperties().Code != OpCode.CAPTURE)
+                                    throw new DecompilerException(Stage.Lifter, "Expected capture instruction following NEWCLOSURE/DUPCLOSURE");
+
+                                LocalExpression? expression;
+
+                                switch ((CaptureType)capture.A)
+                                {
+                                    case CaptureType.Value:
+                                        var type = options.RenameUpvalues ? Decleration.DeclerationType.Upvalue : Decleration.DeclerationType.Local;
+
+                                        expression = (LocalExpression)registers.GetExpression(capture.B);
+                                        expression.Decleration.Type = type;
+                                        break;
+                                    case CaptureType.Upvalue:
+                                        // We've got an existing upvalue
+                                        expression = function.Upvalues[capture.B];
+                                        break;
+                                    case CaptureType.Reference: // reference adding
+                                        expression = (LocalExpression)registers.GetExpression(capture.B);
+                                        break;
+                                    default:
+                                        throw new DecompilerException(Stage.Lifter, $"Unknown capture type {capture.A}");
+                                }
+
+                                expression!.Decleration.Referenced++;
+
+                                newFunction.Upvalues.Add(expression);
                             }
 
-                            expression!.Decleration.Referenced++;
-                            
-                            newFunction.Upvalues.Add(expression);
+                            registers.LoadRegister(instruction.A, new Closure(newRegisters.GetDeclerations(), newFunction.IsVararg, LiftBlock(newFunction, newRegisters), functionId), block);
+                            break;
                         }
-
-                        registers.LoadRegister(instruction.A, new Closure(newRegisters.GetDeclerations(), newFunction.IsVararg, LiftBlock(newFunction, newRegisters), functionId), block);
-                        break;
-                    }
                     case OpCode.GETUPVAL:
-                    {
-                        LocalExpression expression = function.Upvalues[instruction.B];
+                        {
+                            LocalExpression expression = function.Upvalues[instruction.B];
 
-                        registers.LoadRegister(instruction.A, expression, block, expression.Decleration.Type);
-                        break;
-                    }
+                            registers.LoadRegister(instruction.A, expression, block, expression.Decleration.Type);
+                            break;
+                        }
                     case OpCode.RETURN:
-                    {
-                        IList<Expression> expressions = new List<Expression>();
+                        {
+                            IList<Expression> expressions = new List<Expression>();
 
-                        int numArgs = instruction.B > 0 ? instruction.B - 1: registers.Top - instruction.A + 1;
+                            int numArgs = instruction.B > 0 ? instruction.B - 1 : registers.Top - instruction.A + 1;
 
-                        for (int slot = 0; slot < numArgs; ++slot)
-                            expressions.Add(registers.GetExpression(instruction.A + slot));
+                            for (int slot = 0; slot < numArgs; ++slot)
+                                expressions.Add(registers.GetExpression(instruction.A + slot));
 
-                        if (numArgs > 0)
-                            block.AddStatement(new Return(expressions));
-                        break;
-                    }
+                            if (numArgs > 0)
+                                block.AddStatement(new Return(expressions));
+                            break;
+                        }
                     default:
-                    {
-                        // If we don't handle the instruction and it has an auxiliary value, we need to skip it
-                        if (properties.HasAux)
-                            pc++;
-                        break;
-                    }
+                        {
+                            // If we don't handle the instruction and it has an auxiliary value, we need to skip it
+                            if (properties.HasAux)
+                                pc++;
+                            break;
+                        }
                 }
             }
 
@@ -580,7 +583,7 @@ namespace Unluau
                 return new BinaryExpression(registers.GetExpression((int)aux.Value), operation, registers.GetExpression(instruction.A));
 
             Expression right = registers.GetExpression((int)aux.Value);
-
+            Expression left = registers.GetExpression(instruction.A);
             if (operation == BinaryExpression.BinaryOperation.CompareEq && code != OpCode.JUMPIFEQ)
             {
                 if (code == OpCode.JUMPXEQKN || code == OpCode.JUMPXEQKS)
@@ -588,6 +591,11 @@ namespace Unluau
                 else
                     right = ConstantToExpression(constants[(int)aux.Value]);
             }
+            if (left == null || right == null)
+            {
+                throw new DecompilerException(Stage.IfElse, "Unknown LR types");
+            }
+
 
             return new BinaryExpression(registers.GetExpression(instruction.A), operation, right);
         }
@@ -636,7 +644,7 @@ namespace Unluau
                 return new StringLiteral(((StringConstant)constant).Value);
 
             if (constant is NumberConstant)
-                 return new NumberLiteral(((NumberConstant)constant).Value);
+                return new NumberLiteral(((NumberConstant)constant).Value);
 
             if (constant is BoolConstant)
                 return new BooleanLiteral(((BoolConstant)constant).Value);
